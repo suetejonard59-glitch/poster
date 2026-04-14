@@ -1,66 +1,650 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login Page</title>
-
+    <title>Poster Box - Stable Download</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
+            background: linear-gradient(145deg, #a8d8ea 0%, #7bc1d9 100%);
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
             text-align: center;
-            font-family: Arial;
-            background-color: black;
+            color: #0e3b4f;
+            text-shadow: 2px 2px 0 #cfe8f0;
+            font-size: 2rem;
+            margin-bottom: 5px;
         }
-
-        input {
-            padding: 10px;
-            margin: 5px;
+        .sub {
+            text-align: center;
+            color: #1f5e7a;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
         }
-
-        button {
-            padding: 10px;
-            background-color: blue;
+        .upload-card {
+            background: rgba(255, 248, 225, 0.95);
+            border-radius: 48px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+        .file-label {
+            background: #2c7da0;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-label:hover {
+            background: #1f5f7a;
+            transform: scale(1.02);
+        }
+        #imageFile {
+            display: none;
+        }
+        .title-input {
+            flex: 2;
+            min-width: 180px;
+            padding: 12px 18px;
+            border-radius: 60px;
+            border: 1px solid #d4bc8a;
+            font-size: 0.95rem;
+            background: white;
+            outline: none;
+        }
+        .title-input:focus {
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+        }
+        .save-btn {
+            background: #2e7d32;
             color: white;
             border: none;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .save-btn:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+        }
+        .poster-box {
+            background: #fef7e9;
+            border-radius: 32px;
+            padding: 20px;
+            border: 2px solid #f0daa8;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        .box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px dashed #e6cfa0;
+        }
+        .box-header h2 {
+            color: #5a3e1b;
+            font-size: 1.5rem;
+        }
+        .badge-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .count-badge {
+            background: #c9aa6f;
+            color: white;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+        .clear-all {
+            background: #b5651e;
+            color: white;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .clear-all:hover {
+            background: #8e4a12;
+        }
+        .poster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-img {
+            width: 100%;
+            height: 170px;
+            object-fit: cover;
+            cursor: pointer;
+            background: #f0ede8;
+        }
+        .card-title {
+            font-weight: 800;
+            margin: 10px 10px 5px;
+            font-size: 0.85rem;
+            color: #2d3e2b;
+            text-align: center;
+            word-break: break-word;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin: 8px 10px 12px;
+            flex-wrap: wrap;
+        }
+        .btn-view {
+            background: #6b8c42;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .btn-download {
+            background: #2c7da0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .btn-delete {
+            background: #d98f5c;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .btn-view:active, .btn-download:active, .btn-delete:active {
+            transform: scale(0.96);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #b07d48;
+            font-size: 1rem;
+            background: #fff6e6;
+            border-radius: 48px;
+            grid-column: 1/-1;
+        }
+        /* Modal Viewer */
+        .modal-viewer {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .modal-viewer.active {
+            display: flex;
+        }
+        .modal-viewer img {
+            max-width: 92%;
+            max-height: 75%;
+            object-fit: contain;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        .modal-caption {
+            background: #1e2a1ecc;
+            color: #ffecb3;
+            padding: 10px 24px;
+            border-radius: 60px;
+            margin-top: 18px;
+            font-weight: bold;
+            max-width: 85%;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 44px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close:active {
+            background: #c0392b;
+        }
+        .modal-download-btn {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 26px;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-top: 16px;
+            cursor: pointer;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e2f;
+            color: #f9f3cf;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            z-index: 2100;
+            pointer-events: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        @media (max-width: 550px) {
+            .poster-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            .upload-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .toast-msg {
+                white-space: normal;
+                text-align: center;
+                max-width: 90%;
+            }
         }
     </style>
 </head>
-
 <body>
+<div class="container">
+    <h1>📦 POSTER BOX</h1>
+    <div class="sub">🎨 Walang limit sa laki | Download na hindi nagca-crash ✨</div>
+    
+    <div class="upload-card">
+        <label class="file-label" for="imageFile">📸 Pumili ng Larawan</label>
+        <input type="file" id="imageFile" accept="image/jpeg,image/png,image/gif,image/webp">
+        <input type="text" id="titleInput" class="title-input" placeholder="Pangalan ng poster (opsyonal)">
+        <button id="saveBtn" class="save-btn">💾 I-save sa Box</button>
+    </div>
 
-<h2>Login</h2>
+    <div class="poster-box">
+        <div class="box-header">
+            <h2>📌 Mga Poster Ideas</h2>
+            <div class="badge-group">
+                <span class="count-badge" id="countDisplay">0</span>
+                <button class="clear-all" id="clearBtn">🗑️ Burahin Lahat</button>
+            </div>
+        </div>
+        <div id="grid" class="poster-grid">
+            <div class="empty-state">✨ Walang laman. Mag-upload ng larawan! ✨</div>
+        </div>
+    </div>
+</div>
 
-<input type="text" id="username"
-
-placeholder="Username"><br>
-<input type="password" id="password" placeholder="Password"><br>
-
-<button onclick="login()">Login</button>
-
-<p id="result"></p>
+<!-- Modal Viewer -->
+<div id="posterModal" class="modal-viewer">
+    <span class="modal-close">&times;</span>
+    <img id="modalFullImage" src="" alt="full poster">
+    <div id="modalFullTitle" class="modal-caption"></div>
+    <button id="modalDownloadFullBtn" class="modal-download-btn">⬇️ I-download ito</button>
+</div>
 
 <script>
-  
-  
-  
-  
-  
-  
-  
-  
-function login() {
-    var user = document.getElementById("username").value;
-    var pass = document.getElementById("password").value;
+    // Gumamit ng IndexedDB para sa malalaking larawan
+    let db = null;
+    const DB_NAME = 'PosterBoxDB';
+    const STORE_NAME = 'posters';
+    let postersArray = [];
 
-    if(user == "admin" && pass == "1234") {
-        document.getElementById("result").innerHTML = "Login Successful ✅";
-    } else {
-        document.getElementById("result").innerHTML = "Wrong Username or Password ❌";
+    function openDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 3);
+            request.onerror = () => reject("DB error");
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                resolve(db);
+            };
+            request.onupgradeneeded = (event) => {
+                const dbRef = event.target.result;
+                if (!dbRef.objectStoreNames.contains(STORE_NAME)) {
+                    dbRef.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                }
+            };
+        });
     }
-}
-</script>
-<script>alert("HACKED BY JONARD")</script><script type="text/javascript">
-    aclib.runAutoTag({
-        zoneId: 'aajhsowtu',
+
+    async function saveAllPosters(postersList) {
+        if (!db) await openDatabase();
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        await store.clear();
+        for (let poster of postersList) {
+            store.add(poster);
+        }
+        return new Promise((resolve) => {
+            transaction.oncomplete = () => resolve();
+        });
+    }
+
+    async function loadAllPosters() {
+        if (!db) await openDatabase();
+        return new Promise((resolve) => {
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const getAll = store.getAll();
+            getAll.onsuccess = () => {
+                const items = getAll.result || [];
+                items.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+                resolve(items);
+            };
+            getAll.onerror = () => resolve([]);
+        });
+    }
+
+    // SIMPLE DOWNLOAD - Direktang gamit ang anchor tag, walang iframe, walang crash
+    function downloadPoster(imageDataUrl, fileName) {
+        try {
+            // Gumawa ng temporary link
+            const link = document.createElement('a');
+            link.href = imageDataUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            // Maayos na tanggalin pagkatapos ng konting delay
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+            showToast('⬇️ Nagda-download: ' + fileName);
+        } catch(e) {
+            console.error("Download error:", e);
+            showToast('❌ Download failed, subukan muli');
+        }
+    }
+
+    function showToast(msg) {
+        let old = document.querySelector('.toast-msg');
+        if(old) old.remove();
+        let toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function renderGrid() {
+        const gridDiv = document.getElementById('grid');
+        const countSpan = document.getElementById('countDisplay');
+        countSpan.innerText = postersArray.length;
+        
+        if (postersArray.length === 0) {
+            gridDiv.innerHTML = '<div class="empty-state">📭 Walang poster. Mag-upload ng larawan! 📭</div>';
+            return;
+        }
+        
+        let html = '';
+        for (let i = 0; i < postersArray.length; i++) {
+            const p = postersArray[i];
+            const title = p.title || 'Poster idea';
+            const safeFilename = (title.replace(/[^a-z0-9]/gi, '_') || 'poster') + '.png';
+            html += `
+                <div class="card">
+                    <img class="card-img" src="${p.imgData}" alt="poster" data-id="${p.id}">
+                    <div class="card-title">📌 ${escapeHtml(title)}</div>
+                    <div class="btn-group">
+                        <button class="btn-view" data-id="${p.id}">👁️ View</button>
+                        <button class="btn-download" data-id="${p.id}" data-filename="${safeFilename}">⬇️ Download</button>
+                        <button class="btn-delete" data-id="${p.id}">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }
+        gridDiv.innerHTML = html;
+        attachEvents();
+    }
+    
+    function attachEvents() {
+        // View buttons
+        document.querySelectorAll('.btn-view').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const poster = postersArray.find(p => p.id === id);
+                if (poster) openModal(poster);
+            });
+        });
+        
+        // Click sa image
+        document.querySelectorAll('.card-img').forEach(img => {
+            img.addEventListener('click', (e) => {
+                const id = img.getAttribute('data-id');
+                const poster = postersArray.find(p => p.id === id);
+                if (poster) openModal(poster);
+            });
+        });
+        
+        // Delete
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                if (confirm('Tanggalin ang poster na ito?')) {
+                    postersArray = postersArray.filter(p => p.id !== id);
+                    await saveAllPosters(postersArray);
+                    await refreshUI();
+                    showToast('🗑️ Poster tinanggal');
+                }
+            });
+        });
+        
+        // DOWNLOAD - gamit ang simpleng paraan, walang iframe, walang crash
+        document.querySelectorAll('.btn-download').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const filename = btn.getAttribute('data-filename') || 'poster.png';
+                const poster = postersArray.find(p => p.id === id);
+                if (poster && poster.imgData) {
+                    downloadPoster(poster.imgData, filename);
+                } else {
+                    showToast('❌ Hindi mahanap ang larawan');
+                }
+            });
+        });
+    }
+    
+    // MODAL FUNCTIONS
+    let currentModalPoster = null;
+    const modal = document.getElementById('posterModal');
+    const modalImg = document.getElementById('modalFullImage');
+    const modalTitle = document.getElementById('modalFullTitle');
+    const modalDownloadBtn = document.getElementById('modalDownloadFullBtn');
+    const modalClose = document.querySelector('.modal-close');
+    
+    function openModal(poster) {
+        if (!poster || !poster.imgData) return;
+        modalImg.src = poster.imgData;
+        modalTitle.innerText = '📌 ' + (poster.title || 'Poster idea');
+        currentModalPoster = poster;
+        modal.classList.add('active');
+    }
+    
+    function closeModal() {
+        modal.classList.remove('active');
+        setTimeout(() => { modalImg.src = ''; }, 200);
+        currentModalPoster = null;
+    }
+    
+    function downloadFromModal() {
+        if (currentModalPoster && currentModalPoster.imgData) {
+            let fname = (currentModalPoster.title || 'poster').replace(/[^a-z0-9]/gi, '_');
+            if (!fname) fname = 'poster_image';
+            fname = fname + '.png';
+            downloadPoster(currentModalPoster.imgData, fname);
+        }
+    }
+    
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
     });
+    modalDownloadBtn.addEventListener('click', downloadFromModal);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+    
+    async function refreshUI() {
+        postersArray = await loadAllPosters();
+        renderGrid();
+    }
+    
+    async function addPoster() {
+        const file = document.getElementById('imageFile').files[0];
+        if (!file) {
+            showToast('❌ Pumili muna ng larawan!');
+            return;
+        }
+        if (!file.type.startsWith('image/')) {
+            showToast('❌ Hindi valid na image file');
+            return;
+        }
+        
+        let title = document.getElementById('titleInput').value.trim();
+        if (title === "") title = "🎨 Poster ko";
+        
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const newPoster = {
+                id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
+                imgData: e.target.result,
+                title: title,
+                timestamp: Date.now()
+            };
+            postersArray.unshift(newPoster);
+            
+            await saveAllPosters(postersArray);
+            await refreshUI();
+            document.getElementById('imageFile').value = '';
+            document.getElementById('titleInput').value = '';
+            showToast('✅ Na-save na ang poster!');
+        };
+        reader.onerror = () => showToast('❌ Error sa pagbasa ng file');
+        reader.readAsDataURL(file);
+    }
+
+    async function clearAll() {
+        if (postersArray.length === 0) return;
+        if (confirm('Burahin lahat ng poster? Hindi na maibabalik.')) {
+            postersArray = [];
+            await saveAllPosters(postersArray);
+            await refreshUI();
+            showToast('🧹 Lahat ng poster ay nabura');
+        }
+    }
+    
+    document.getElementById('saveBtn').addEventListener('click', addPoster);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    document.getElementById('titleInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addPoster();
+    });
+    
+    (async function init() {
+        try {
+            await openDatabase();
+            await refreshUI();
+            showToast('✨ Poster Box handa na! Download ay diretso, walang crash.');
+        } catch(err) {
+            console.error(err);
+            alert('Gumamit ng modern browser para sa pinakamagandang experience');
+            postersArray = [];
+            renderGrid();
+        }
+    })();
 </script>
 </body>
 </html>
+  
+  
+  
+  
+  
+  
+  
+  
