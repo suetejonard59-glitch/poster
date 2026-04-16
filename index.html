@@ -787,6 +787,70 @@ Version 1.0 napay pa version2
     });
     
     refreshPosters();
+
+
+
+
+
+
+
+// Diagnostic function
+async function checkSupabaseSetup() {
+
+
+
+async function checkSupabaseSetup() {
+    console.log("=== CHECKING SUPABASE SETUP ===");
+    
+    // Tama: gamitin ang .listBuckets() hindi .buckets.list()
+    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+    
+    if (bucketError) {
+        console.error("❌ Cannot list buckets:", bucketError.message);
+        console.error("Full error:", bucketError);
+    } else {
+        console.log("✅ Successfully connected to Supabase Storage");
+        console.log("Available buckets:", buckets.map(b => b.name));
+        
+        const hasPosterBucket = buckets.some(b => b.name === 'poster-images');
+        if (hasPosterBucket) {
+            console.log("✅ 'poster-images' bucket EXISTS");
+        } else {
+            console.error("❌ 'poster-images' bucket MISSING - kailangan mong gawin ito sa Supabase Dashboard!");
+        }
+    }
+    
+    // Check table
+    console.log("\n--- Checking Database ---");
+    const { data: tableCheck, error: tableError } = await supabase
+        .from('posters')
+        .select('count', { count: 'exact', head: true });
+    
+    if (tableError) {
+        console.error("❌ Table error:", tableError.message);
+        if (tableError.message.includes('does not exist')) {
+            console.error("❌ 'posters' table DOES NOT EXIST! Kailangan mong gawin ito.");
+        }
+    } else {
+        console.log("✅ 'posters' table exists and accessible");
+    }
+    
+    console.log("=== END CHECK ===");
+}
+
+// Run on page load
+setTimeout(checkSupabaseSetup, 2000);
+
+
+
+
+
+
+
+
+    
+
+    
 </script>
 </body>
 </html>
