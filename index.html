@@ -1,8 +1,7 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Poster Box - Cloud Storage (Supabase)</title>
+    <title>Poster Box · Cloud Collab Gallery (Supabase)</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <style>
@@ -346,36 +345,24 @@
                 max-width: 90%;
             }
         }
+        .device-tag {
+            background: #f5e5c8;
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 30px;
+            margin-left: 8px;
+            color: #7a5800;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-   
-   
-  
-  <h6 style="
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-margin: 0;
-padding: 5px;
-text-align: center;
-background: #87b6c6;
-z-index: 9999;
-">
-Version 1.0 napay pa version2
-</h6>
-  
-  
-  
-   
+</head>
+<body>
+<div class="container">
     <h1>📦 POSTER BOX</h1>
     <div class="sub">🎨 by Jonard Suete</div>
+    <div class="sub">✨ Shoutout Jesalyn Bermudes ✨</div>    
 
-
-    
-    <div class="sub">✨ Shoutout  Jesalyn Bermudes ✨</div>    
-    
     <div class="upload-card">
         <label class="file-label" for="imageFile">📸 Pumili ng Larawan</label>
         <input type="file" id="imageFile" accept="image/jpeg,image/png,image/gif,image/webp">
@@ -406,23 +393,26 @@ Version 1.0 napay pa version2
 </div>
 
 <script>
-    // ============= SUPABASE CONFIGURATION =============
-    const SUPABASE_URL = 'https://gylopnipkycuvjbkkazf.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BUaAwQ5fvUWjkUlh0mSIuQ_caUm-n_U';
+  
+  
+      // ============= SUPABASE CONFIGURATION =============
+    const SUPABASE_URL = "https://nbvwefoxxloinythwzqy.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_9HZiwgEMiyheCMUNvEIXCA_C4dPvqsQ";
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     
     let postersArray = [];
     let currentModalPoster = null;
     
-    function showToast(msg) {
+    // Helper: show toast message
+    function showToast(msg, duration = 2800) {
         let old = document.querySelector('.toast-msg');
         if(old) old.remove();
         let toast = document.createElement('div');
         toast.className = 'toast-msg';
         toast.innerText = msg;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2500);
+        setTimeout(() => toast.remove(), duration);
     }
     
     function escapeHtml(str) {
@@ -435,6 +425,7 @@ Version 1.0 napay pa version2
         });
     }
     
+    // Device identifier – used to track ownership for deletion (each device can only delete its own uploads)
     function getDeviceId() {
         let deviceId = localStorage.getItem('poster_device_id');
         if (!deviceId) {
@@ -446,6 +437,7 @@ Version 1.0 napay pa version2
     
     const currentDeviceId = getDeviceId();
     
+    // ---------- STORAGE OPERATIONS ----------
     async function uploadImageToStorage(file, fileName) {
         try {
             const { data, error } = await supabase.storage
@@ -454,17 +446,14 @@ Version 1.0 napay pa version2
                     cacheControl: '3600',
                     upsert: false
                 });
-            
             if (error) {
                 console.error('Upload error:', error);
                 showToast('Storage error: ' + error.message);
                 return null;
             }
-            
             const { data: urlData } = supabase.storage
                 .from('poster-images')
                 .getPublicUrl(`public/${fileName}`);
-            
             return urlData.publicUrl;
         } catch (err) {
             console.error('Storage upload failed:', err);
@@ -477,15 +466,11 @@ Version 1.0 napay pa version2
             const { error } = await supabase.storage
                 .from('poster-images')
                 .remove([`public/${fileName}`]);
-            
-            if (error) {
-                console.error('Delete from storage error:', error);
-            }
-        } catch (err) {
-            console.error('Storage delete failed:', err);
-        }
+            if (error) console.error('Delete from storage error:', error);
+        } catch (err) { console.error('Storage delete failed:', err); }
     }
     
+    // ---------- DATABASE OPERATIONS ----------
     async function savePosterToDatabase(id, imageUrl, title, author) {
         const { data, error } = await supabase
             .from('posters')
@@ -496,7 +481,6 @@ Version 1.0 napay pa version2
                 author: author,
                 created_at: new Date().toISOString()
             }]);
-        
         if (error) {
             console.error('Database insert error:', error);
             throw error;
@@ -510,7 +494,6 @@ Version 1.0 napay pa version2
                 .from('posters')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
             if (error) {
                 console.error('Load error:', error);
                 return [];
@@ -528,65 +511,54 @@ Version 1.0 napay pa version2
             const urlParts = imageUrl.split('/');
             fileName = urlParts[urlParts.length - 1];
         }
-        
         const { error } = await supabase
             .from('posters')
             .delete()
             .eq('id', id);
-        
         if (error) {
             console.error('Delete from database error:', error);
             throw error;
         }
-        
         if (fileName) {
             await deleteImageFromStorage(fileName);
         }
-        
         return true;
     }
     
+    // Delete all posters (global, but only triggered after confirmation)
     async function deleteAllPosters() {
         const allPosters = await loadAllPostersFromCloud();
-        
         for (let poster of allPosters) {
             if (poster.image_url) {
                 const urlParts = poster.image_url.split('/');
                 const fileName = urlParts[urlParts.length - 1];
-                if (fileName) {
-                    await deleteImageFromStorage(fileName);
-                }
+                if (fileName) await deleteImageFromStorage(fileName);
             }
         }
-        
-        const { error } = await supabase
-            .from('posters')
-            .delete()
-            .neq('id', '');
-        
+        const { error } = await supabase.from('posters').delete().neq('id', '');
         if (error) {
             console.error('Delete all error:', error);
             throw error;
         }
     }
     
-    function downloadPoster(imageUrl, fileName) {
+    // ---------- DOWNLOAD HELPER ----------
+    function downloadPoster(imageUrl, suggestedName) {
         try {
             const link = document.createElement('a');
             link.href = imageUrl;
-            link.download = fileName;
+            link.download = suggestedName || 'poster_image.jpg';
             document.body.appendChild(link);
             link.click();
-            setTimeout(() => {
-                document.body.removeChild(link);
-            }, 100);
-            showToast('⬇️ Nagda-download: ' + fileName);
+            setTimeout(() => document.body.removeChild(link), 150);
+            showToast('⬇️ Nagda-download: ' + suggestedName);
         } catch(e) {
             console.error("Download error:", e);
             showToast('❌ Download failed');
         }
     }
     
+    // ---------- RENDER GRID ----------
     function renderGrid() {
         const gridDiv = document.getElementById('grid');
         const countSpan = document.getElementById('countDisplay');
@@ -602,27 +574,29 @@ Version 1.0 napay pa version2
             const p = postersArray[i];
             const title = p.title || 'Poster idea';
             const author = p.author || 'Anonymous';
-            const safeFilename = (title.replace(/[^a-z0-9]/gi, '_') || 'poster') + '.png';
+            const safeFilename = (title.replace(/[^a-z0-9]/gi, '_') || 'poster') + '.jpg';
             const canDelete = (author === currentDeviceId);
+            const authorDisplay = canDelete ? 'Ikaw' : (author.length > 12 ? author.substring(0, 10) + '..' : author);
             
             html += `
-                <div class="card">
-                    <img class="card-img" src="${p.image_url}" alt="poster" data-id="${p.id}">
+                <div class="card" data-poster-id="${p.id}">
+                    <img class="card-img" src="${p.image_url}" alt="poster" data-id="${p.id}" loading="lazy">
                     <div class="card-title">📌 ${escapeHtml(title)}</div>
-                    <div class="card-author">👤 ${escapeHtml(canDelete ? 'Ikaw' : author.substring(0, 12))}</div>
+                    <div class="card-author">👤 ${escapeHtml(authorDisplay)}${!canDelete ? '<span class="device-tag">community</span>' : '<span class="device-tag" style="background:#d4e2c6;">ikaw</span>'}</div>
                     <div class="btn-group">
                         <button class="btn-view" data-id="${p.id}">👁️ View</button>
-                        <button class="btn-download" data-id="${p.id}" data-filename="${safeFilename}">⬇️ Download</button>
+                        <button class="btn-download" data-id="${p.id}" data-filename="${escapeHtml(safeFilename)}">⬇️ Download</button>
                         ${canDelete ? `<button class="btn-delete" data-id="${p.id}">🗑️</button>` : ''}
                     </div>
                 </div>
             `;
         }
         gridDiv.innerHTML = html;
-        attachEvents();
+        attachCardEvents();
     }
     
-    function attachEvents() {
+    function attachCardEvents() {
+        // View buttons
         document.querySelectorAll('.btn-view').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -631,7 +605,7 @@ Version 1.0 napay pa version2
                 if (poster) openModal(poster);
             });
         });
-        
+        // image click
         document.querySelectorAll('.card-img').forEach(img => {
             img.addEventListener('click', (e) => {
                 const id = img.getAttribute('data-id');
@@ -639,295 +613,188 @@ Version 1.0 napay pa version2
                 if (poster) openModal(poster);
             });
         });
-        
+
+        // download
+        document.querySelectorAll('.btn-download').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const filenameAttr = btn.getAttribute('data-filename') || 'poster_art.jpg';
+                const poster = postersArray.find(p => p.id === id);
+                if (poster && poster.image_url) {
+                    downloadPoster(poster.image_url, filenameAttr);
+                } else {
+                    showToast('❌ Hindi makuha ang larawan');
+                }
+            });
+        });
+        // delete
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const id = btn.getAttribute('data-id');
-                
-               
-      
-                
-                if (confirm('Tanggalin ang poster na ito?')) {
+                const posterToDelete = postersArray.find(p => p.id === id);
+                if (!posterToDelete) return;
+                if (confirm(`Tanggalin ang poster "${posterToDelete.title || 'ito'}"?`)) {
                     try {
-                        const posterToDelete = postersArray.find(p => p.id === id);
-                        if (posterToDelete) {
-                            await deletePosterFromDatabase(id, posterToDelete.image_url);
-                            showToast('🗑️ Poster tinanggal');
-                            await refreshPosters();
-                        }
+                        await deletePosterFromDatabase(id, posterToDelete.image_url);
+                        showToast(`✓ Tinanggal: ${posterToDelete.title || 'Poster'}`);
+                        await refreshPosterList();
                     } catch (err) {
-                        showToast('❌ Nabigong tanggalin');
+                        console.error(err);
+                        showToast('❌ Nabura ang pagkabura, subukan muli');
                     }
                 }
             });
         });
-        
-        document.querySelectorAll('.btn-download').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const id = btn.getAttribute('data-id');
-                const filename = btn.getAttribute('data-filename') || 'poster.png';
-                const poster = postersArray.find(p => p.id === id);
-                if (poster && poster.image_url) {
-                    downloadPoster(poster.image_url, filename);
-                } else {
-                    showToast('❌ Hindi mahanap ang larawan');
-                }
-            });
-        });
     }
     
-    const modal = document.getElementById('posterModal');
-    const modalImg = document.getElementById('modalFullImage');
-    const modalTitle = document.getElementById('modalFullTitle');
-    const modalDownloadBtn = document.getElementById('modalDownloadFullBtn');
-    const modalClose = document.querySelector('.modal-close');
-    
+    // Modal logic
     function openModal(poster) {
-        if (!poster || !poster.image_url) return;
-        modalImg.src = poster.image_url;
-        modalTitle.innerText = '📌 ' + (poster.title || 'Poster idea');
+        if (!poster) return;
         currentModalPoster = poster;
+        const modal = document.getElementById('posterModal');
+        const modalImg = document.getElementById('modalFullImage');
+        const modalTitle = document.getElementById('modalFullTitle');
+        modalImg.src = poster.image_url;
+        modalTitle.innerText = poster.title ? `📌 ${poster.title}` : '📸 Poster (walang pamagat)';
         modal.classList.add('active');
     }
     
     function closeModal() {
+        const modal = document.getElementById('posterModal');
         modal.classList.remove('active');
-        setTimeout(() => { modalImg.src = ''; }, 200);
         currentModalPoster = null;
     }
     
-    function downloadFromModal() {
-        if (currentModalPoster && currentModalPoster.image_url) {
-            let fname = (currentModalPoster.title || 'poster').replace(/[^a-z0-9]/gi, '_');
-            if (!fname) fname = 'poster_image';
-            fname = fname + '.png';
-            downloadPoster(currentModalPoster.image_url, fname);
+    // Refresh list from cloud
+    async function refreshPosterList() {
+        const gridDiv = document.getElementById('grid');
+        gridDiv.innerHTML = '<div class="loading-state">🔄 Binabasa ang cloud gallery...</div>';
+        try {
+            const posters = await loadAllPostersFromCloud();
+            postersArray = posters;
+            renderGrid();
+            if (posters.length === 0) showToast('✨ Walang poster, mag-upload ng bago!', 2000);
+            else showToast(`✅ ${posters.length} poster ang na-load`, 1500);
+        } catch (err) {
+            console.error(err);
+            gridDiv.innerHTML = '<div class="empty-state">⚠️ Error sa pag-load ng data. Subukan muli.</div>';
+            showToast('❌ Hindi ma-connect sa cloud');
         }
     }
     
-    modalClose.addEventListener('click', closeModal);
+    // ---------- UPLOAD NEW POSTER ----------
+    async function handleUpload() {
+        const fileInput = document.getElementById('imageFile');
+        const titleInput = document.getElementById('titleInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            showToast('📁 Pumili muna ng larawan!');
+            return;
+        }
+        
+        // Validate image type
+        if (!file.type.startsWith('image/')) {
+            showToast('❌ Pumili ng valid na imahe (JPEG, PNG, etc)');
+            return;
+        }
+        
+        const title = titleInput.value.trim() === '' ? 'Poster Idea' : titleInput.value.trim();
+        const fileExt = file.name.split('.').pop();
+        const uniqueId = crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36);
+        const storageFileName = `${uniqueId}.${fileExt}`;
+        
+        // Disable save button to avoid double submit
+        const saveBtn = document.getElementById('saveBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '⏳ Nag-a-upload...';
+        saveBtn.disabled = true;
+        
+        try {
+            // 1. upload image to storage
+            const publicUrl = await uploadImageToStorage(file, storageFileName);
+            if (!publicUrl) {
+                showToast('❌ Upload sa storage nabigo');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                return;
+            }
+            // 2. save metadata to posters table
+            await savePosterToDatabase(uniqueId, publicUrl, title, currentDeviceId);
+            showToast(`🎉 Nai-save ang "${title}" sa cloud!`);
+            // clear inputs
+            fileInput.value = '';
+            titleInput.value = '';
+            // refresh gallery
+            await refreshPosterList();
+        } catch (err) {
+            console.error(err);
+            showToast('❌ Hindi na-save: ' + (err.message || 'unknown error'));
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+    
+    // ---------- CLEAR ALL (global delete) with double confirmation ----------
+    async function handleClearAll() {
+        if (postersArray.length === 0) {
+            showToast('Wala pang poster na mabubura.');
+            return;
+        }
+        const confirmMsg = '⚠️ BABALA: Burahin LAHAT ng poster mula sa cloud? Ito ay pang-global at hindi na maibabalik.';
+        if (!confirm(confirmMsg)) return;
+        const secondConfirm = confirm('I-type ang "DELETE ALL" upang kumpirmahin:');
+        if (!secondConfirm) return;
+        const typeCheck = prompt('I-type ang "DELETE ALL" upang tuluyang burahin:');
+        if (typeCheck !== 'DELETE ALL') {
+            showToast('❌ Kinansela. Hindi tugma ang code.');
+            return;
+        }
+        try {
+            await deleteAllPosters();
+            showToast('🗑️ Lahat ng poster ay permanenteng nabura!');
+            await refreshPosterList();
+        } catch (err) {
+            console.error(err);
+            showToast('❌ Error sa pagbura ng lahat');
+        }
+    }
+    
+    // ---------- EVENT LISTENERS & INIT ----------
+    document.getElementById('saveBtn').addEventListener('click', handleUpload);
+    document.getElementById('refreshBtn').addEventListener('click', refreshPosterList);
+    document.getElementById('clearBtn').addEventListener('click', handleClearAll);
+    
+    // Modal close events
+    const modal = document.getElementById('posterModal');
+    document.querySelector('.modal-close').addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
     });
-    modalDownloadBtn.addEventListener('click', downloadFromModal);
+    // Download inside modal
+    const modalDownloadBtn = document.getElementById('modalDownloadFullBtn');
+    modalDownloadBtn.addEventListener('click', () => {
+        if (currentModalPoster && currentModalPoster.image_url) {
+            let fileName = (currentModalPoster.title || 'poster').replace(/[^a-z0-9]/gi, '_') + '.jpg';
+            downloadPoster(currentModalPoster.image_url, fileName);
+        } else {
+            showToast('Walang larawang ma-download');
+        }
+    });
+    
+    // Keyboard ESC close modal
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
     });
     
-    async function refreshPosters() {
-        const gridDiv = document.getElementById('grid');
-        gridDiv.innerHTML = '<div class="loading-state">⏳ Naglo-load...</div>';
-        
-        try {
-            postersArray = await loadAllPostersFromCloud();
-            renderGrid();
-            showToast(`✨ ${postersArray.length} poster(s) na-load`);
-        } catch (err) {
-            console.error(err);
-            gridDiv.innerHTML = '<div class="empty-state">❌ Error sa connection</div>';
-        }
-    }
-    
-    async function addPosterToCloud() {
-        const file = document.getElementById('imageFile').files[0];
-        if (!file) {
-            showToast('❌ Pumili ng larawan!');
-            return;
-        }
-        
-        let title = document.getElementById('titleInput').value.trim();
-        if (title === "") title = "🎨 Poster ko";
-        
-        const uniqueId = Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-        const fileExtension = file.name.split('.').pop() || 'png';
-        const fileName = `${uniqueId}.${fileExtension}`;
-        
-        showToast('📤 Ina-upload...');
-        
-        try {
-            const imageUrl = await uploadImageToStorage(file, fileName);
-            if (!imageUrl) {
-                showToast('❌ Failed upload');
-                return;
-            }
-            
-            await savePosterToDatabase(uniqueId, imageUrl, title, currentDeviceId);
-            showToast('✅ Na-save sa cloud!');
-            document.getElementById('imageFile').value = '';
-            document.getElementById('titleInput').value = '';
-            await refreshPosters();
-        } catch (err) {
-            console.error(err);
-            showToast('❌ Error: ' + err.message);
-        }
-    }
-    
-    async function clearAllPosters() {
-        if (postersArray.length === 0) return;
-        if (confirm('⚠️ BURAHIN LAHAT? Hindi na maibabalik!')) {
-            try {
-                showToast('⏳ Binubura...');
-                await deleteAllPosters();
-                await refreshPosters();
-                showToast('🧹 Lahat nabura');
-            } catch (err) {
-                showToast('❌ Error sa pagbura');
-            }
-        }
-    }
-    
-    document.getElementById('saveBtn').addEventListener('click', addPosterToCloud);
-    document.getElementById('clearBtn').addEventListener('click', clearAllPosters);
-    document.getElementById('refreshBtn').addEventListener('click', refreshPosters);
-    document.getElementById('titleInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addPosterToCloud();
-    });
-    
-    refreshPosters();
-
-
-
-
-
-
-
-// Diagnostic function
-async function checkSupabaseSetup() {
-
-
-
-async function checkSupabaseSetup() {
-    console.log("=== CHECKING SUPABASE SETUP ===");
-    
-    // Tama: gamitin ang .listBuckets() hindi .buckets.list()
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    
-    if (bucketError) {
-        console.error("❌ Cannot list buckets:", bucketError.message);
-        console.error("Full error:", bucketError);
-    } else {
-        console.log("✅ Successfully connected to Supabase Storage");
-        console.log("Available buckets:", buckets.map(b => b.name));
-        
-        const hasPosterBucket = buckets.some(b => b.name === 'poster-images');
-        if (hasPosterBucket) {
-            console.log("✅ 'poster-images' bucket EXISTS");
-        } else {
-            console.error("❌ 'poster-images' bucket MISSING - kailangan mong gawin ito sa Supabase Dashboard!");
-        }
-    }
-    
-    // Check table
-    console.log("\n--- Checking Database ---");
-    const { data: tableCheck, error: tableError } = await supabase
-        .from('posters')
-        .select('count', { count: 'exact', head: true });
-    
-    if (tableError) {
-        console.error("❌ Table error:", tableError.message);
-        if (tableError.message.includes('does not exist')) {
-            console.error("❌ 'posters' table DOES NOT EXIST! Kailangan mong gawin ito.");
-        }
-    } else {
-        console.log("✅ 'posters' table exists and accessible");
-    }
-    
-    console.log("=== END CHECK ===");
-}
-
-// Run on page load
-setTimeout(checkSupabaseSetup, 2000);
-
-
-
-
-
-
-
-
-    
-
-    
+    // initial load
+    refreshPosterList().catch(console.warn);
 </script>
 </body>
 </html>
 
 
-<body style="margin:0; padding-top:50px;">
 
-<div id="announce" style="
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-background: #ffcc00;
-color: black;
-text-align: center;
-padding: 10px;
-font-weight: bold;
-z-index: 9999;
-animation: slideFade 8s ease forwards;
-">
-📢 Announcement: Bawal Upload og bad hu ky makita ni sa tanan na be respectfull -by developer jonard suete
-</div>
-
-<style>
-@keyframes slideFade {
-  0% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  10% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  80% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-}
-</style>
-
-<script>
-setTimeout(() => {
-  document.getElementById("announce").style.display = "none";
-}, 8000);
-</script>
-
-</body>
-
-
-
-<div style="background:#fff; padding:15px; margin:20px; border-radius:15px;">
-  <h3>💡 Suggestions about this website feature you want to add/ Comments</h3>
-
-  <input id="name" placeholder="Pangalan mo" style="width:100%; padding:8px; margin:5px 0;">
-  
-  <textarea id="comment" placeholder="Ilagay ang suggestion mo..." 
-  style="width:100%; padding:8px; margin:5px 0;"></textarea>
-  
-  <button onclick="addComment()" 
-  style="padding:10px; width:100%; background:green; color:white; border:none; border-radius:10px;">
-  ➕ Mag Comment
-  </button>
-
-  <div id="commentsList" style="margin-top:15px;"></div>
-</div>
-
-
-
-
-
-
-
-
-
-
-                                                           
+    
